@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Local environments and editor files
+.env
+.vscode/
+.idea/
+
+# Generated datasets and experiment output (keep directory placeholders)
+data/generated/*.json
+!data/generated/.gitkeep
+logs/*
+!logs/.gitkeep
+results/*
+!results/.gitkeep

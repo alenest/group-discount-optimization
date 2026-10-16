@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "instance_id": "manual-small-q4",
+  "seed": null,
+  "max_weight": 22,
+  "target_item_count": 4,
+  "groups": [
+    {
+      "group_id": "group-A",
+      "weight_discount_percent": 0,
+      "utility_bonus_percent": 40,
+      "items": [
+        {
+          "item_id": "A1",
+          "weight": 5,
+          "utility": 8
+        },
+        {
+          "item_id": "A2",
+          "weight": 7,
+          "utility": 12
+        },
+        {
+          "item_id": "A3",
+          "weight": 4,
+          "utility": 5
+        }
+      ]
+    },
+    {
+      "group_id": "group-B",
+      "weight_discount_percent": 25,
+      "utility_bonus_percent": 10,
+      "items": [
+        {
+          "item_id": "B1",
+          "weight": 8,
+          "utility": 11
+        },
+        {
+          "item_id": "B2",
+          "weight": 6,
+          "utility": 9
+        },
+        {
+          "item_id": "B3",
+          "weight": 10,
+          "utility": 15
+        }
+      ]
+    },
+    {
+      "group_id": "group-C",
+      "weight_discount_percent": 50,
+      "utility_bonus_percent": 0,
+      "items": [
+        {
+          "item_id": "C1",
+          "weight": 12,
+          "utility": 13
+        },
+        {
+          "item_id": "C2",
+          "weight": 9,
+          "utility": 10
+        },
+        {
+          "item_id": "C3",
+          "weight": 3,
+          "utility": 2
+        }
+      ]
+    }
+  ]
+}
