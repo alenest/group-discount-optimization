@@ -1,29 +1,26 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+# Эти инструменты нужны pip, чтобы установить проект в режиме разработки.
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
+# Имя пакета и версия текущего простого генератора тестовых данных.
 name = "group-discount-optimization"
-version = "0.3.0"
-description = "Research project for cardinality-constrained single-knapsack optimization with group-specific coefficients"
+version = "0.1.0"
+description = "Generator of test instances for grouped discount knapsack optimization"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "Research prototype; license to be selected before publication" }
-authors = [{ name = "Alexander Nesterov" }]
 dependencies = []
 
 [project.optional-dependencies]
+# Pytest используется только для запуска автоматических тестов.
 dev = ["pytest>=8.0"]
 
-
 [tool.setuptools.packages.find]
+# Исходный Python-пакет находится в каталоге src.
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+# Pytest ищет тесты только в tests/.
 testpaths = ["tests"]
 addopts = "-q"
-
-[tool.ruff]
-line-length = 100
-target-version = "py311"

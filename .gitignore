@@ -1,22 +1,16 @@
-# Python
+# Файлы Python, созданные во время запуска.
 __pycache__/
 *.py[cod]
 *.egg-info/
-.eggs/
+
+# Виртуальные окружения и настройки редакторов.
 .venv/
 venv/
-.pytest_cache/
-.ruff_cache/
-
-# Local environments and editor files
-.env
 .vscode/
 .idea/
+.pytest_cache/
 
-# Generated datasets and experiment output (keep directory placeholders)
+# Сгенерированные экземпляры не добавляются в Git автоматически.
+# При необходимости отдельные проверенные данные можно добавить вручную.
 data/generated/*.json
 !data/generated/.gitkeep
-logs/*
-!logs/.gitkeep
-results/*
-!results/.gitkeep
