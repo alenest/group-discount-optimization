@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "instance_id": "n10_instance001",
+  "seed": 42,
+  "max_weight": 356,
+  "target_item_count": 10,
+  "groups": [
+    {
+      "group_id": "G01",
+      "weight_discount_percent": 40,
+      "utility_bonus_percent": 7,
+      "items": [
+        {
+          "item_id": "G01_I00001",
+          "weight": 4,
+          "utility": 95
+        },
+        {
+          "item_id": "G01_I00002",
+          "weight": 36,
+          "utility": 32
+        },
+        {
+          "item_id": "G01_I00003",
+          "weight": 29,
+          "utility": 18
+        },
+        {
+          "item_id": "G01_I00004",
+          "weight": 95,
+          "utility": 14
+        }
+      ]
+    },
+    {
+      "group_id": "G02",
+      "weight_discount_percent": 43,
+      "utility_bonus_percent": 47,
+      "items": [
+        {
+          "item_id": "G02_I00001",
+          "weight": 70,
+          "utility": 12
+        },
+        {
+          "item_id": "G02_I00002",
+          "weight": 76,
+          "utility": 55
+        },
+        {
+          "item_id": "G02_I00003",
+          "weight": 5,
+          "utility": 4
+        }
+      ]
+    },
+    {
+      "group_id": "G03",
+      "weight_discount_percent": 5,
+      "utility_bonus_percent": 13,
+      "items": [
+        {
+          "item_id": "G03_I00001",
+          "weight": 30,
+          "utility": 65
+        },
+        {
+          "item_id": "G03_I00002",
+          "weight": 78,
+          "utility": 4
+        },
+        {
+          "item_id": "G03_I00003",
+          "weight": 72,
+          "utility": 26
+        }
+      ]
+    }
+  ],
+  "generation": {
+    "item_count": 10,
+    "group_count": 3,
+    "weight_range": [
+      1,
+      100
+    ],
+    "utility_range": [
+      1,
+      100
+    ],
+    "discount_percent_range": [
+      0,
+      50
+    ],
+    "bonus_percent_range": [
+      0,
+      50
+    ],
+    "capacity_ratio_percent": 50
+  }
+}

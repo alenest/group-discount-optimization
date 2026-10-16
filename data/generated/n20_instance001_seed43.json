@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "instance_id": "n20_instance001",
+  "seed": 43,
+  "max_weight": 186,
+  "target_item_count": 10,
+  "groups": [
+    {
+      "group_id": "G01",
+      "weight_discount_percent": 2,
+      "utility_bonus_percent": 18,
+      "items": [
+        {
+          "item_id": "G01_I00001",
+          "weight": 90,
+          "utility": 98
+        },
+        {
+          "item_id": "G01_I00002",
+          "weight": 19,
+          "utility": 60
+        },
+        {
+          "item_id": "G01_I00003",
+          "weight": 48,
+          "utility": 86
+        },
+        {
+          "item_id": "G01_I00004",
+          "weight": 90,
+          "utility": 13
+        },
+        {
+          "item_id": "G01_I00005",
+          "weight": 59,
+          "utility": 77
+        },
+        {
+          "item_id": "G01_I00006",
+          "weight": 64,
+          "utility": 78
+        },
+        {
+          "item_id": "G01_I00007",
+          "weight": 3,
+          "utility": 66
+        }
+      ]
+    },
+    {
+      "group_id": "G02",
+      "weight_discount_percent": 27,
+      "utility_bonus_percent": 36,
+      "items": [
+        {
+          "item_id": "G02_I00001",
+          "weight": 48,
+          "utility": 80
+        },
+        {
+          "item_id": "G02_I00002",
+          "weight": 71,
+          "utility": 97
+        },
+        {
+          "item_id": "G02_I00003",
+          "weight": 56,
+          "utility": 51
+        },
+        {
+          "item_id": "G02_I00004",
+          "weight": 23,
+          "utility": 8
+        },
+        {
+          "item_id": "G02_I00005",
+          "weight": 14,
+          "utility": 16
+        },
+        {
+          "item_id": "G02_I00006",
+          "weight": 49,
+          "utility": 20
+        },
+        {
+          "item_id": "G02_I00007",
+          "weight": 13,
+          "utility": 21
+        }
+      ]
+    },
+    {
+      "group_id": "G03",
+      "weight_discount_percent": 32,
+      "utility_bonus_percent": 31,
+      "items": [
+        {
+          "item_id": "G03_I00001",
+          "weight": 17,
+          "utility": 99
+        },
+        {
+          "item_id": "G03_I00002",
+          "weight": 50,
+          "utility": 77
+        },
+        {
+          "item_id": "G03_I00003",
+          "weight": 65,
+          "utility": 35
+        },
+        {
+          "item_id": "G03_I00004",
+          "weight": 74,
+          "utility": 24
+        },
+        {
+          "item_id": "G03_I00005",
+          "weight": 49,
+          "utility": 9
+        },
+        {
+          "item_id": "G03_I00006",
+          "weight": 7,
+          "utility": 75
+        }
+      ]
+    }
+  ],
+  "generation": {
+    "item_count": 20,
+    "group_count": 3,
+    "weight_range": [
+      1,
+      100
+    ],
+    "utility_range": [
+      1,
+      100
+    ],
+    "discount_percent_range": [
+      0,
+      50
+    ],
+    "bonus_percent_range": [
+      0,
+      50
+    ],
+    "capacity_ratio_percent": 50
+  }
+}
