@@ -1,9 +1,9 @@
 {
-  "format_version": 1,
+  "format_version": 2,
   "n": 1000,
-  "target_item_count": 10,
-  "group_count": 3,
-  "capacity": 486,
+  "target_item_count": 804,
+  "group_count": 4,
+  "capacity": 21989,
   "seed": 60,
   "weight_range": [
     1,
@@ -24,27 +24,39 @@
   "groups": [
     {
       "id": 1,
-      "weight_discount_percent": 33,
-      "utility_bonus_percent": 25,
-      "item_count": 334
+      "weight_discount_percent": 10,
+      "utility_bonus_percent": 14,
+      "item_count": 224,
+      "weights_key": "group_001_weights",
+      "profits_key": "group_001_profits"
     },
     {
       "id": 2,
-      "weight_discount_percent": 11,
-      "utility_bonus_percent": 30,
-      "item_count": 333
+      "weight_discount_percent": 44,
+      "utility_bonus_percent": 45,
+      "item_count": 280,
+      "weights_key": "group_002_weights",
+      "profits_key": "group_002_profits"
     },
     {
       "id": 3,
-      "weight_discount_percent": 41,
-      "utility_bonus_percent": 36,
-      "item_count": 333
+      "weight_discount_percent": 14,
+      "utility_bonus_percent": 39,
+      "item_count": 234,
+      "weights_key": "group_003_weights",
+      "profits_key": "group_003_profits"
+    },
+    {
+      "id": 4,
+      "weight_discount_percent": 39,
+      "utility_bonus_percent": 5,
+      "item_count": 262,
+      "weights_key": "group_004_weights",
+      "profits_key": "group_004_profits"
     }
   ],
   "arrays": {
-    "weights": "Исходные целочисленные веса предметов.",
-    "profits": "Исходная полезность предметов (ключ profits сохранён по аналогии со старым репозиторием).",
-    "group_ids": "ID группы для каждого предмета; индексы массивов соответствуют друг другу."
+    "description": "Каждая группа хранится в собственных массивах weights и profits; ключи указаны в метаданных группы."
   },
   "instance_id": "instance_004"
 }

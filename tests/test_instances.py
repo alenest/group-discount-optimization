@@ -1,4 +1,4 @@
-"""Проверки фиксированного набора сырых экземпляров и генератора."""
+"""Проверки фиксированного набора экземпляров и генератора."""
 
 import json
 from pathlib import Path
@@ -26,50 +26,66 @@ def test_dataset_contains_five_fixed_instances_for_every_size():
         assert all((case.parent / "meta.json").is_file() for case in cases)
 
 
-def test_committed_raw_arrays_and_metadata_are_valid():
+def test_committed_arrays_are_separate_for_each_group_and_valid():
     for path in instance_dirs():
         instance = load_instance(path)
-        assert instance.weights.dtype.kind in "iu"
-        assert instance.profits.dtype.kind in "iu"
-        assert instance.group_ids.dtype.kind in "iu"
-        assert instance.item_count == len(instance.weights)
-        assert instance.weights.shape == instance.profits.shape == instance.group_ids.shape
+        assert instance.item_count == sum(group.item_count for group in instance.groups)
+        assert instance.weights.size == instance.profits.size == instance.group_ids.size == instance.item_count
         assert 1 <= instance.target_item_count <= instance.item_count
         assert all(1 <= int(value) <= 100 for value in instance.weights)
         assert all(1 <= int(value) <= 100 for value in instance.profits)
         assert all(0 <= group.weight_discount_percent <= 50 for group in instance.groups)
         assert all(0 <= group.utility_bonus_percent <= 50 for group in instance.groups)
+        with np.load(path / "data.npz", allow_pickle=False) as data:
+            assert "weights" not in data.files
+            assert "profits" not in data.files
+            assert "group_ids" not in data.files
+            for group in instance.groups:
+                assert f"group_{group.group_id:03d}_weights" in data.files
+                assert f"group_{group.group_id:03d}_profits" in data.files
+                assert group.weights.size == group.profits.size == group.item_count
 
 
-def test_smallest_instances_select_five_items():
-    for path in (DATA_DIR / "n_10").glob("instance_*"):
-        assert load_instance(path).target_item_count == 5
+def test_q_and_group_count_vary_between_instances_of_same_size():
+    for n in EXPECTED_SIZES:
+        instances = [load_instance(path) for path in sorted((DATA_DIR / f"n_{n}").glob("instance_*"))]
+        assert len({item.target_item_count for item in instances}) > 1
+        assert len({item.group_count for item in instances}) > 1
 
 
-def test_generator_creates_npz_and_metadata_without_text_or_config_inputs(tmp_path):
+def test_generator_creates_separate_group_lists_and_varied_parameters(tmp_path):
     output = tmp_path / "instances"
-    created = generate_dataset(output, sizes=(10, 20), instances_per_size=2, group_count=3, seed=123)
-    assert len(created) == 4
+    created = generate_dataset(
+        output, sizes=(10, 20), instances_per_size=4,
+        min_groups=2, max_groups=4, q_min=1, q_max=None, seed=123,
+    )
+    assert len(created) == 8
     for path in created:
         assert (path / "data.npz").is_file()
         assert (path / "meta.json").is_file()
-        assert not list(path.glob("*.txt"))
         instance = load_instance(path)
         assert instance.item_count in (10, 20)
+        assert sum(group.item_count for group in instance.groups) == instance.item_count
+    for n in (10, 20):
+        items = [load_instance(path) for path in sorted((output / f"n_{n}").glob("instance_*"))]
+        assert len({item.target_item_count for item in items}) > 1
+        assert len({item.group_count for item in items}) > 1
     assert (output / "manifest.csv").is_file()
 
 
 def test_generator_is_reproducible(tmp_path):
     first = tmp_path / "first"
     second = tmp_path / "second"
-    generate_dataset(first, sizes=(20,), instances_per_size=1, seed=7)
-    generate_dataset(second, sizes=(20,), instances_per_size=1, seed=7)
-    with np.load(first / "n_20/instance_001/data.npz") as a, np.load(second / "n_20/instance_001/data.npz") as b:
-        for key in ("weights", "profits", "group_ids"):
-            np.testing.assert_array_equal(a[key], b[key])
-    assert json.loads((first / "n_20/instance_001/meta.json").read_text()) == json.loads(
-        (second / "n_20/instance_001/meta.json").read_text()
-    )
+    generate_dataset(first, sizes=(20,), instances_per_size=3, seed=7)
+    generate_dataset(second, sizes=(20,), instances_per_size=3, seed=7)
+    for instance_id in ("instance_001", "instance_002", "instance_003"):
+        with np.load(first / f"n_20/{instance_id}/data.npz") as a, np.load(second / f"n_20/{instance_id}/data.npz") as b:
+            assert a.files == b.files
+            for key in a.files:
+                np.testing.assert_array_equal(a[key], b[key])
+        assert json.loads((first / f"n_20/{instance_id}/meta.json").read_text()) == json.loads(
+            (second / f"n_20/{instance_id}/meta.json").read_text()
+        )
 
 
 def test_loader_rejects_missing_instance(tmp_path):

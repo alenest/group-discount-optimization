@@ -20,13 +20,9 @@ data/
 └── n_5000/
 ```
 
-В `data.npz` хранятся массивы одинаковой длины:
+В `data.npz` у каждой группы есть собственные массивы: например, `group_001_weights` и `group_001_profits`. В `meta.json` указаны ключи этих массивов, размер группы, её скидка на вес и бонус к полезности. Размеры всех групп в сумме дают `n` — общее число предметов экземпляра.
 
-- `weights` — исходные целочисленные веса предметов;
-- `profits` — исходная полезность предметов (имя сохранено по аналогии со старым репозиторием);
-- `group_ids` — ID группы каждого предмета. Элемент с индексом `i` во всех трёх массивах описывает один и тот же предмет.
-
-В `meta.json` хранятся вместимость рюкзака, требуемое количество предметов `target_item_count`, число групп, начальное значение генератора и параметры каждой группы: ID, скидка на вес, бонус к полезности и число предметов. Так исходные массивы и метаданные хранятся раздельно, как в исходном проекте.
+В `meta.json` также хранятся вместимость рюкзака, точное количество выбираемых предметов `target_item_count` (`Q`), число групп и seed генератора. Загрузчик предоставляет и плоские `instance.weights`, `instance.profits`, `instance.group_ids` для алгоритмов, которым удобнее общий массив, но на диске данные каждой группы хранятся отдельно.
 
 ## Математическая модель
 
@@ -53,13 +49,15 @@ data/
 
 В репозитории находятся 25 готовых экземпляров — по пять для каждого размера. Их можно читать напрямую, без генерации:
 
-| Число предметов `n` | Выбрать ровно `Q` | Экземпляров |
-|---:|---:|---:|
-| 10 | 5 | 5 |
-| 20 | 10 | 5 |
-| 50 | 10 | 5 |
-| 1 000 | 10 | 5 |
-| 5 000 | 10 | 5 |
+| Общее число предметов `n` | Число экземпляров |
+|---:|---:|
+| 10 | 5 |
+| 20 | 5 |
+| 50 | 5 |
+| 1 000 | 5 |
+| 5 000 | 5 |
+
+`Q` и число групп выбираются отдельно для каждого экземпляра, поэтому их значения могут различаться даже при одинаковом `n`. По умолчанию `Q` лежит в диапазоне от 1 до `n`, а число групп — от 2 до 5.
 
 ## Загрузка экземпляра
 
@@ -67,13 +65,16 @@ data/
 from group_discount_optimization.instance import load_instance
 
 instance = load_instance("data/n_50/instance_001")
-print(instance.weights)
-print(instance.profits)
-print(instance.group_ids)
 print(instance.capacity)
 print(instance.target_item_count)
 for group in instance.groups:
-    print(group.group_id, group.weight_discount_percent, group.utility_bonus_percent)
+    print(group.group_id, group.weights, group.profits)
+    print(group.weight_discount_percent, group.utility_bonus_percent)
+
+# При необходимости доступны и плоские массивы для алгоритмов:
+print(instance.weights)
+print(instance.profits)
+print(instance.group_ids)
 ```
 
 Алгоритм может также напрямую открыть массивы через NumPy:
@@ -82,9 +83,8 @@ for group in instance.groups:
 import numpy as np
 
 with np.load("data/n_50/instance_001/data.npz") as data:
-    weights = data["weights"]
-    profits = data["profits"]
-    group_ids = data["group_ids"]
+    weights_group_1 = data["group_001_weights"]
+    profits_group_1 = data["group_001_profits"]
 ```
 
 ## Генератор
@@ -98,8 +98,10 @@ python -m group_discount_optimization.generator --seed 42
 Чтобы создать другой набор в отдельном каталоге:
 
 ```bash
-python -m group_discount_optimization.generator --output data/experiment --sizes 10 100 1000 --instances-per-size 3 --groups 3 --seed 123
+python -m group_discount_optimization.generator --output data/experiment --sizes 10 100 1000 --instances-per-size 5 --min-groups 2 --max-groups 6 --q-min 1 --q-max 100 --seed 123
 ```
+
+`--sizes` задаёт общее число предметов во всём экземпляре, а не число предметов в каждой группе. `--min-groups` и `--max-groups` задают диапазон числа групп. `--q-min` и `--q-max` задают диапазон `Q`; если `--q-max` не передан, он равен `n` для каждого экземпляра.
 
 Одинаковые параметры и `--seed` дают одинаковые массивы и метаданные. Не запускай генератор перед каждым тестом: обычные тестовые запуски должны использовать уже сохранённые экземпляры.
 

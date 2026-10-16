@@ -1,4 +1,4 @@
-"""Генерация фиксируемых тестовых экземпляров в формате data.npz + meta.json."""
+"""Генерация фиксируемых тестовых экземпляров с отдельными списками групп."""
 
 from __future__ import annotations
 
@@ -11,10 +11,14 @@ import numpy as np
 
 DEFAULT_SIZES = (10, 20, 50, 1000, 5000)
 DEFAULT_INSTANCES_PER_SIZE = 5
-DEFAULT_GROUP_COUNT = 3
+DEFAULT_MIN_GROUPS = 2
+DEFAULT_MAX_GROUPS = 5
 
 
-def _make_instance(n: int, q: int, group_count: int, seed: int) -> tuple[dict[str, np.ndarray], dict]:
+def _make_instance(
+    n: int, q: int, group_count: int, seed: int
+) -> tuple[dict[str, np.ndarray], dict]:
+    """Создать экземпляр, в котором у каждой группы собственные массивы."""
     if n < 1:
         raise ValueError("Число предметов n должно быть положительным.")
     if not 1 <= q <= n:
@@ -23,38 +27,43 @@ def _make_instance(n: int, q: int, group_count: int, seed: int) -> tuple[dict[st
         raise ValueError("Число групп должно быть в диапазоне 1..n.")
 
     rng = np.random.default_rng(seed)
-    weights = rng.integers(1, 101, size=n, dtype=np.int64)
-    profits = rng.integers(1, 101, size=n, dtype=np.int64)
 
-    # Каждая группа получает хотя бы один предмет; затем распределение перемешивается.
-    group_ids = np.arange(n, dtype=np.int64) % group_count + 1
-    rng.shuffle(group_ids)
+    # Сначала гарантируем хотя бы один предмет в каждой группе, затем случайно
+    # распределяем оставшиеся предметы. Сумма размеров списков всегда равна n.
+    counts = np.ones(group_count, dtype=np.int64)
+    if n > group_count:
+        counts += rng.multinomial(n - group_count, np.full(group_count, 1 / group_count))
+    rng.shuffle(counts)
 
-    groups = []
-    discounts: dict[int, int] = {}
-    bonuses: dict[int, int] = {}
-    adjusted_weights = np.empty(n, dtype=np.float64)
-    for group_id in range(1, group_count + 1):
+    arrays: dict[str, np.ndarray] = {}
+    groups: list[dict] = []
+    adjusted_weights: list[np.ndarray] = []
+    for group_id, item_count in enumerate(counts, start=1):
+        weights_key = f"group_{group_id:03d}_weights"
+        profits_key = f"group_{group_id:03d}_profits"
+        weights = rng.integers(1, 101, size=int(item_count), dtype=np.int64)
+        profits = rng.integers(1, 101, size=int(item_count), dtype=np.int64)
         discount = int(rng.integers(0, 51))
         bonus = int(rng.integers(0, 51))
-        discounts[group_id] = discount
-        bonuses[group_id] = bonus
-        adjusted_weights[group_ids == group_id] = weights[group_ids == group_id] * (1 - discount / 100)
+        arrays[weights_key] = weights
+        arrays[profits_key] = profits
+        adjusted_weights.append(weights.astype(np.float64) * (1 - discount / 100))
         groups.append({
             "id": group_id,
             "weight_discount_percent": discount,
             "utility_bonus_percent": bonus,
-            "item_count": int(np.count_nonzero(group_ids == group_id)),
+            "item_count": int(item_count),
+            "weights_key": weights_key,
+            "profits_key": profits_key,
         })
 
-    # Вместимость делает экземпляр допустимым (помещаются хотя бы Q самых лёгких
-    # предметов после скидок), но не позволяет безусловно выбрать любые Q предметов.
-    min_feasible_weight = float(np.sort(adjusted_weights)[:q].sum())
-    typical_q_weight = float(np.sort(adjusted_weights)[-q:].mean() * q)
+    all_adjusted_weights = np.concatenate(adjusted_weights)
+    min_feasible_weight = float(np.sort(all_adjusted_weights)[:q].sum())
+    typical_q_weight = float(np.sort(all_adjusted_weights)[-q:].mean() * q)
     capacity = max(1, math.ceil(max(min_feasible_weight, typical_q_weight * 0.55)))
 
     metadata = {
-        "format_version": 1,
+        "format_version": 2,
         "n": n,
         "target_item_count": q,
         "group_count": group_count,
@@ -66,12 +75,9 @@ def _make_instance(n: int, q: int, group_count: int, seed: int) -> tuple[dict[st
         "bonus_percent_range": [0, 50],
         "groups": groups,
         "arrays": {
-            "weights": "Исходные целочисленные веса предметов.",
-            "profits": "Исходная полезность предметов (ключ profits сохранён по аналогии со старым репозиторием).",
-            "group_ids": "ID группы для каждого предмета; индексы массивов соответствуют друг другу.",
+            "description": "Каждая группа хранится в собственных массивах weights и profits; ключи указаны в метаданных группы."
         },
     }
-    arrays = {"weights": weights, "profits": profits, "group_ids": group_ids}
     return arrays, metadata
 
 
@@ -79,23 +85,53 @@ def generate_dataset(
     output_dir: str | Path = "data",
     sizes: tuple[int, ...] = DEFAULT_SIZES,
     instances_per_size: int = DEFAULT_INSTANCES_PER_SIZE,
-    group_count: int = DEFAULT_GROUP_COUNT,
+    min_groups: int = DEFAULT_MIN_GROUPS,
+    max_groups: int = DEFAULT_MAX_GROUPS,
     seed: int = 42,
     overwrite: bool = True,
+    q_min: int = 1,
+    q_max: int | None = None,
 ) -> list[Path]:
-    """Создать готовые экземпляры: n_<size>/instance_NNN/{data.npz, meta.json}."""
+    """Создать сохранённые экземпляры: n_<size>/instance_NNN/{data.npz,meta.json}."""
     output_dir = Path(output_dir)
     if instances_per_size < 1:
         raise ValueError("instances_per_size должно быть не меньше 1.")
     if not sizes or any(n < 1 for n in sizes):
         raise ValueError("Размеры должны быть положительными числами.")
+    if min_groups < 1 or max_groups < min_groups:
+        raise ValueError("Требуется 1 <= min_groups <= max_groups.")
+    if q_min < 1 or (q_max is not None and q_max < q_min):
+        raise ValueError("Требуется 1 <= q_min <= q_max.")
 
     created: list[Path] = []
     manifest_rows = ["size,instance,n,target_item_count,group_count,seed,format"]
     for size_index, n in enumerate(sizes):
-        q = 5 if n == 10 else min(10, n)
+        upper_q = n if q_max is None else min(n, q_max)
+        lower_q = min(q_min, upper_q)
+        upper_groups = min(max_groups, n)
+        lower_groups = min(min_groups, upper_groups)
+        if upper_groups < 1:
+            raise ValueError(f"Для n={n} нельзя создать хотя бы одну группу.")
+
+        # Без повторов, если диапазон позволяет: Q и число групп реально меняются
+        # между экземплярами одного размера, а не только потенциально могут меняться.
+        q_rng = np.random.default_rng(seed + size_index * 1_000_003 + 17)
+        group_rng = np.random.default_rng(seed + size_index * 1_000_003 + 29)
+        q_values = q_rng.choice(
+            np.arange(lower_q, upper_q + 1),
+            size=instances_per_size,
+            replace=(instances_per_size > upper_q - lower_q + 1),
+        )
+        group_values = group_rng.choice(
+            np.arange(lower_groups, upper_groups + 1),
+            size=instances_per_size,
+            replace=(instances_per_size > upper_groups - lower_groups + 1),
+        )
+
         for instance_index in range(1, instances_per_size + 1):
             instance_seed = seed + size_index * instances_per_size + instance_index - 1
+            q = int(q_values[instance_index - 1])
+            group_count = int(group_values[instance_index - 1])
             instance_dir = output_dir / f"n_{n}" / f"instance_{instance_index:03d}"
             if instance_dir.exists() and not overwrite:
                 raise FileExistsError(f"Каталог уже существует: {instance_dir}")
@@ -117,11 +153,14 @@ def generate_dataset(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Генератор сырых тестовых экземпляров задачи групповых скидок.")
+    parser = argparse.ArgumentParser(description="Генератор экземпляров задачи групповых скидок.")
     parser.add_argument("--output", default="data", help="Каталог для готовых экземпляров.")
-    parser.add_argument("--sizes", nargs="+", type=int, default=list(DEFAULT_SIZES), help="Размеры n.")
+    parser.add_argument("--sizes", nargs="+", type=int, default=list(DEFAULT_SIZES), help="Общее число предметов n в экземпляре.")
     parser.add_argument("--instances-per-size", type=int, default=DEFAULT_INSTANCES_PER_SIZE)
-    parser.add_argument("--groups", type=int, default=DEFAULT_GROUP_COUNT)
+    parser.add_argument("--min-groups", type=int, default=DEFAULT_MIN_GROUPS)
+    parser.add_argument("--max-groups", type=int, default=DEFAULT_MAX_GROUPS)
+    parser.add_argument("--q-min", type=int, default=1, help="Минимальное число выбираемых предметов Q.")
+    parser.add_argument("--q-max", type=int, default=None, help="Максимальное Q; по умолчанию равно n для каждого размера.")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--no-overwrite", action="store_true", help="Не перезаписывать существующие экземпляры.")
     args = parser.parse_args()
@@ -129,7 +168,10 @@ def main() -> None:
         output_dir=args.output,
         sizes=tuple(args.sizes),
         instances_per_size=args.instances_per_size,
-        group_count=args.groups,
+        min_groups=args.min_groups,
+        max_groups=args.max_groups,
+        q_min=args.q_min,
+        q_max=args.q_max,
         seed=args.seed,
         overwrite=not args.no_overwrite,
     )

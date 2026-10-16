@@ -1,9 +1,9 @@
 {
-  "format_version": 1,
+  "format_version": 2,
   "n": 20,
-  "target_item_count": 10,
-  "group_count": 3,
-  "capacity": 317,
+  "target_item_count": 14,
+  "group_count": 2,
+  "capacity": 437,
   "seed": 49,
   "weight_range": [
     1,
@@ -24,27 +24,23 @@
   "groups": [
     {
       "id": 1,
-      "weight_discount_percent": 14,
-      "utility_bonus_percent": 29,
-      "item_count": 7
+      "weight_discount_percent": 18,
+      "utility_bonus_percent": 38,
+      "item_count": 11,
+      "weights_key": "group_001_weights",
+      "profits_key": "group_001_profits"
     },
     {
       "id": 2,
-      "weight_discount_percent": 23,
-      "utility_bonus_percent": 3,
-      "item_count": 7
-    },
-    {
-      "id": 3,
-      "weight_discount_percent": 10,
-      "utility_bonus_percent": 8,
-      "item_count": 6
+      "weight_discount_percent": 1,
+      "utility_bonus_percent": 10,
+      "item_count": 9,
+      "weights_key": "group_002_weights",
+      "profits_key": "group_002_profits"
     }
   ],
   "arrays": {
-    "weights": "Исходные целочисленные веса предметов.",
-    "profits": "Исходная полезность предметов (ключ profits сохранён по аналогии со старым репозиторием).",
-    "group_ids": "ID группы для каждого предмета; индексы массивов соответствуют друг другу."
+    "description": "Каждая группа хранится в собственных массивах weights и profits; ключи указаны в метаданных группы."
   },
   "instance_id": "instance_003"
 }
