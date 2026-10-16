@@ -1,0 +1,50 @@
+{
+  "format_version": 1,
+  "n": 20,
+  "target_item_count": 10,
+  "group_count": 3,
+  "capacity": 390,
+  "seed": 48,
+  "weight_range": [
+    1,
+    100
+  ],
+  "utility_range": [
+    1,
+    100
+  ],
+  "discount_percent_range": [
+    0,
+    50
+  ],
+  "bonus_percent_range": [
+    0,
+    50
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "weight_discount_percent": 6,
+      "utility_bonus_percent": 43,
+      "item_count": 7
+    },
+    {
+      "id": 2,
+      "weight_discount_percent": 15,
+      "utility_bonus_percent": 46,
+      "item_count": 7
+    },
+    {
+      "id": 3,
+      "weight_discount_percent": 6,
+      "utility_bonus_percent": 44,
+      "item_count": 6
+    }
+  ],
+  "arrays": {
+    "weights": "Исходные целочисленные веса предметов.",
+    "profits": "Исходная полезность предметов (ключ profits сохранён по аналогии со старым репозиторием).",
+    "group_ids": "ID группы для каждого предмета; индексы массивов соответствуют друг другу."
+  },
+  "instance_id": "instance_002"
+}

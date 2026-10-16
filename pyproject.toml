@@ -1,26 +1,21 @@
 [build-system]
-# Эти инструменты нужны pip, чтобы установить проект в режиме разработки.
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-# Имя пакета и версия текущего простого генератора тестовых данных.
 name = "group-discount-optimization"
 version = "0.1.0"
-description = "Generator of test instances for grouped discount knapsack optimization"
+description = "Ready-to-use test instances and loader for grouped-discount knapsack optimization"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["numpy>=1.24"]
 
 [project.optional-dependencies]
-# Pytest используется только для запуска автоматических тестов.
 dev = ["pytest>=8.0"]
 
 [tool.setuptools.packages.find]
-# Исходный Python-пакет находится в каталоге src.
 where = ["src"]
 
 [tool.pytest.ini_options]
-# Pytest ищет тесты только в tests/.
 testpaths = ["tests"]
 addopts = "-q"

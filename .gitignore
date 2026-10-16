@@ -1,4 +1,4 @@
-# Файлы Python, созданные во время запуска.
+# Временные файлы Python.
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -9,4 +9,3 @@ venv/
 .vscode/
 .idea/
 .pytest_cache/
-
