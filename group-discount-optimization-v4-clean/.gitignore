@@ -1,0 +1,11 @@
+# Временные файлы Python.
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Виртуальные окружения и настройки редакторов.
+.venv/
+venv/
+.vscode/
+.idea/
+.pytest_cache/
