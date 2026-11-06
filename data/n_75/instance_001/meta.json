@@ -1,0 +1,68 @@
+{
+  "format_version": 3,
+  "instance_id": "instance_001",
+  "n": 75,
+  "target_item_count": 10,
+  "group_count": 2,
+  "group_membership_count": 75,
+  "capacity": 185,
+  "seed": 52,
+  "items": {
+    "ids_key": "item_ids",
+    "weights_key": "weights",
+    "utilities_key": "utilities"
+  },
+  "groups": [
+    {
+      "id": 1,
+      "item_count": 35,
+      "item_ids_key": "group_001_item_ids",
+      "min_selected_for_discount": 5,
+      "weight_discount_percent": 40,
+      "utility_bonus_percent": 0
+    },
+    {
+      "id": 2,
+      "item_count": 40,
+      "item_ids_key": "group_002_item_ids",
+      "min_selected_for_discount": 5,
+      "weight_discount_percent": 34,
+      "utility_bonus_percent": 0
+    }
+  ],
+  "generation": {
+    "weight_range": [
+      1,
+      100
+    ],
+    "utility_range": [
+      1,
+      100
+    ],
+    "discount_percent_range": [
+      25,
+      50
+    ],
+    "utility_bonus_percent_range": [
+      0,
+      0
+    ],
+    "threshold_range": [
+      4,
+      5
+    ],
+    "group_membership_overlap": false,
+    "capacity_rule": "Between a low-weight feasible witness and a high-weight witness with the same per-group selection counts.",
+    "witness_selected_counts_by_group": [
+      5,
+      5
+    ]
+  },
+  "notes": [
+    "n is the number of unique items, not the sum of group item_count values.",
+    "Each item has one stable item_id and is stored once.",
+    "Groups refer to items by item_id; the format permits overlapping memberships.",
+    "This initial generated set uses disjoint groups to isolate threshold discount behavior.",
+    "The overlap discount-combination rule is not set; see docs/mathematical_model.md."
+  ]
+}

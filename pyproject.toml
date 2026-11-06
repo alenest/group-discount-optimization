@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "group-discount-optimization"
-version = "0.1.0"
-description = "Ready-to-use test instances and loader for grouped-discount knapsack optimization"
+version = "0.2.0"
+description = "Threshold-based group-discount knapsack instances, loader and evaluator"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["numpy>=1.24"]
