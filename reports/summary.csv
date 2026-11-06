@@ -1,0 +1,13 @@
+n,optimum_utility,exhaustive_time_sec,exhaustive_candidates,greedy_ratio_utility,greedy_ratio_gap_percent,greedy_ratio_time_sec,greedy_group_aware_utility,greedy_group_aware_gap_percent,greedy_group_aware_time_sec,greedy_group_aware_feasible,greedy_group_aware_active_groups,greedy_group_aware_group_counts,greedy_no_groups_utility,greedy_no_groups_feasible,exhaustive_no_groups_utility,exhaustive_no_groups_feasible
+12,761.64,0.001724,66,668.1,,0.000375,761.64,0.0,0.004674,True,1;2,1=5;2=4;outside=1,582.0,False,0.0,False
+15,593.04,0.079315,3003,652.56,,0.000549,593.04,0.0,0.081845,True,2;3,1=0;2=4;3=5;outside=1,591.0,False,0.0,False
+18,973.74,1.188878,43758,916.14,5.915337,0.00023,916.14,5.915337,0.014031,True,1;2,1=5;2=5;outside=0,690.0,True,692.0,True
+20,809.36,4.409007,184756,778.93,3.759761,0.000254,791.51,2.205446,0.020282,True,1;2,1=5;2=5;outside=0,652.0,False,0.0,False
+22,815.67,16.171581,646646,745.47,8.606422,0.000337,745.47,8.606422,0.022622,True,1;2,1=4;2=5;outside=1,551.0,False,0.0,False
+25,800.86,82.672555,3268760,587.51,26.640112,0.000243,800.86,0.0,0.025594,True,1,1=8;2=2;outside=0,550.0,True,573.0,True
+30,,,,719.96,,0.000301,899.26,,0.503474,True,1;2,1=5;2=4;3=1;outside=0,635.0,True,,
+40,,,,656.04,,0.000286,845.79,,0.043039,True,1;2,1=6;2=4;outside=0,561.0,True,,
+50,,,,731.53,,0.000289,1023.67,,0.047492,True,2,1=1;2=9;outside=0,599.0,True,,
+60,,,,717.0,,0.000334,1160.54,,0.7366,True,2;3,1=1;2=4;3=5;outside=0,717.0,True,,
+75,,,,689.08,,0.000324,917.16,,0.069542,True,1,1=9;2=1;outside=0,634.0,True,,
+100,,,,536.55,,0.000403,884.85,,0.914709,True,1;3,1=4;2=0;3=5;outside=1,514.0,True,,
