@@ -9,3 +9,11 @@ venv/
 .vscode/
 .idea/
 .pytest_cache/
+
+# Локальные материалы конференции и служебные файлы.
+/Blok_doklad_2025_fin.pdf
+/manual.pdf
+/Приглашение МНТК 33.pdf
+/opencode.json
+/result.json
+/.opencode/
