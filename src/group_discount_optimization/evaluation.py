@@ -1,4 +1,4 @@
-"""Единый расчёт выбранного набора с учётом порогов групп."""
+"""Единый расчёт выбранного набора с пороговой активацией двух эффектов."""
 
 from __future__ import annotations
 
@@ -8,17 +8,23 @@ from typing import Iterable
 from .instance import Instance
 
 
-class AmbiguousGroupBenefitError(ValueError):
-    """Предмет одновременно попал под эффекты нескольких групп без заданного правила."""
-
-
 @dataclass(frozen=True, slots=True)
 class GroupEvaluation:
     group_id: int
     selected_count: int
     threshold: int
-    discount_active: bool
+    effects_active: bool
     weight_discount_percent: int
+    utility_bonus_percent: int
+
+    @property
+    def discount_active(self) -> bool:
+        """Оба групповых эффекта включаются одним и тем же порогом."""
+        return self.effects_active
+
+    @property
+    def utility_bonus_active(self) -> bool:
+        return self.effects_active
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,8 +34,16 @@ class ItemEvaluation:
     effective_weight: float
     original_utility: int
     effective_utility: float
-    discount_group_id: int | None
-    bonus_group_id: int | None
+    group_id: int | None
+    effects_active: bool
+
+    @property
+    def discount_group_id(self) -> int | None:
+        return self.group_id if self.effects_active else None
+
+    @property
+    def bonus_group_id(self) -> int | None:
+        return self.group_id if self.effects_active else None
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,7 +65,7 @@ class Evaluation:
 
     @property
     def active_group_ids(self) -> tuple[int, ...]:
-        return tuple(group.group_id for group in self.groups if group.discount_active)
+        return tuple(group.group_id for group in self.groups if group.effects_active)
 
     @property
     def group_selected_counts(self) -> dict[int, int]:
@@ -59,20 +73,11 @@ class Evaluation:
 
 
 def evaluate_selection(instance: Instance, selected_item_ids: Iterable[int]) -> Evaluation:
-    """Оценить набор выбранных ID.
+    """Рассчитать вес и полезность набора предметов.
 
-    Правило порога: при выборе не менее min_selected_for_discount предметов
-    скидка активируется и применяется ко ВСЕМ выбранным предметам этой группы,
-    включая предметы, которыми порог был достигнут.
-
-    Бонус к полезности сохранён как отдельный коэффициент прежней модели и,
-    пока он не будет отдельно уточнён, применяется к предметам группы без
-    порогового условия. В текущем наборе данных бонус равен нулю.
-
-    Пересечения групп в структуре данных поддерживаются. Если один выбранный
-    предмет одновременно попадает под скидки двух активных групп (или под два
-    ненулевых бонуса), функция выдаёт ошибку: правило объединения эффектов
-    преподавателем пока не задано, и выбирать его самостоятельно нельзя.
+    Если из группы выбрано не меньше её порога, одновременно активируются
+    снижение веса и бонус полезности. Оба коэффициента применяются ко всем
+    выбранным предметам этой группы. Предметы вне групп не получают эффектов.
     """
 
     raw_ids = tuple(int(value) for value in selected_item_ids)
@@ -80,54 +85,35 @@ def evaluate_selection(instance: Instance, selected_item_ids: Iterable[int]) -> 
         raise ValueError("Один и тот же предмет нельзя выбирать повторно.")
 
     items_by_id = instance.items_by_id
-    unknown = set(raw_ids).difference(items_by_id)
+    selected = set(raw_ids)
+    unknown = selected.difference(items_by_id)
     if unknown:
         raise ValueError(f"Выбраны неизвестные ID предметов: {sorted(unknown)}.")
 
-    selected = set(raw_ids)
-    group_selected_counts = {
+    item_to_group = {
+        item_id: group
+        for group in instance.groups
+        for item_id in group.item_ids
+    }
+    selected_counts = {
         group.group_id: sum(item_id in selected for item_id in group.item_ids)
         for group in instance.groups
     }
-    active_groups = {
-        group.group_id: group
+    active = {
+        group.group_id: selected_counts[group.group_id] >= group.min_selected_for_discount
         for group in instance.groups
-        if group_selected_counts[group.group_id] >= group.min_selected_for_discount
     }
-
-    memberships: dict[int, list] = {item_id: [] for item_id in raw_ids}
-    for group in instance.groups:
-        for item_id in group.item_ids:
-            if item_id in selected:
-                memberships[item_id].append(group)
 
     item_results: list[ItemEvaluation] = []
     total_weight = 0.0
     total_utility = 0.0
-
-    for item_id in raw_ids:
+    for item_id in sorted(raw_ids):
         item = items_by_id[item_id]
-        item_groups = memberships[item_id]
-        active_for_item = [group for group in item_groups if group.group_id in active_groups]
-        nonzero_bonus_groups = [group for group in item_groups if group.utility_bonus_percent > 0]
+        group = item_to_group.get(item_id)
+        effects_active = group is not None and active[group.group_id]
 
-        if len(active_for_item) > 1:
-            ids = [group.group_id for group in active_for_item]
-            raise AmbiguousGroupBenefitError(
-                f"Предмет {item_id} входит в несколько активных групп {ids}. "
-                "Правило объединения скидок для пересекающихся групп ещё не задано."
-            )
-        if len(nonzero_bonus_groups) > 1:
-            ids = [group.group_id for group in nonzero_bonus_groups]
-            raise AmbiguousGroupBenefitError(
-                f"Предмет {item_id} получает бонусы нескольких групп {ids}; "
-                "правило объединения бонусов ещё не задано."
-            )
-
-        discount_group = active_for_item[0] if active_for_item else None
-        bonus_group = nonzero_bonus_groups[0] if nonzero_bonus_groups else None
-        discount = discount_group.weight_discount_percent if discount_group else 0
-        bonus = bonus_group.utility_bonus_percent if bonus_group else 0
+        discount = group.weight_discount_percent if effects_active and group is not None else 0
+        bonus = group.utility_bonus_percent if effects_active and group is not None else 0
         effective_weight = item.weight * (1.0 - discount / 100.0)
         effective_utility = item.utility * (1.0 + bonus / 100.0)
         total_weight += effective_weight
@@ -140,18 +126,19 @@ def evaluate_selection(instance: Instance, selected_item_ids: Iterable[int]) -> 
                 effective_weight=effective_weight,
                 original_utility=item.utility,
                 effective_utility=effective_utility,
-                discount_group_id=None if discount_group is None else discount_group.group_id,
-                bonus_group_id=None if bonus_group is None else bonus_group.group_id,
+                group_id=None if group is None else group.group_id,
+                effects_active=bool(effects_active),
             )
         )
 
     group_results = tuple(
         GroupEvaluation(
             group_id=group.group_id,
-            selected_count=group_selected_counts[group.group_id],
+            selected_count=selected_counts[group.group_id],
             threshold=group.min_selected_for_discount,
-            discount_active=group.group_id in active_groups,
+            effects_active=active[group.group_id],
             weight_discount_percent=group.weight_discount_percent,
+            utility_bonus_percent=group.utility_bonus_percent,
         )
         for group in instance.groups
     )

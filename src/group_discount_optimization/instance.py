@@ -1,8 +1,9 @@
-"""Модели предметов и групп, а также загрузка экземпляров формата v3."""
+"""Модели предметов и групп, загрузка и проверка готовых экземпляров v4."""
 
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Mapping
@@ -12,7 +13,7 @@ import numpy as np
 
 @dataclass(frozen=True, slots=True)
 class Item:
-    """Уникальный предмет. Один и тот же Item может входить в несколько групп."""
+    """Уникальный предмет с постоянным ID, исходным весом и полезностью."""
 
     item_id: int
     weight: int
@@ -21,7 +22,7 @@ class Item:
 
 @dataclass(frozen=True, slots=True)
 class Group:
-    """Группа ссылается на предметы по ID; списки разных групп могут пересекаться."""
+    """Группа с непересекающимся набором ID и порогом активации эффектов."""
 
     group_id: int
     item_ids: tuple[int, ...]
@@ -31,13 +32,13 @@ class Group:
 
     @property
     def item_count(self) -> int:
-        """Число предметов, перечисленных в этой группе (не порог скидки)."""
+        """Число предметов в группе; это не порог активации."""
         return len(self.item_ids)
 
 
 @dataclass(frozen=True, slots=True)
 class Instance:
-    """Полный экземпляр: уникальные предметы, группы и ограничения рюкзака."""
+    """Экземпляр задачи: уникальные предметы, группы и ограничения рюкзака."""
 
     items: tuple[Item, ...]
     groups: tuple[Group, ...]
@@ -46,14 +47,17 @@ class Instance:
     seed: int | None = None
     instance_id: str | None = None
 
-    @property
-    def item_count(self) -> int:
-        """Количество уникальных предметов n, без повторного счёта по группам."""
-        return len(self.items)
+    def __post_init__(self) -> None:
+        _validate_instance(self)
 
     @property
     def n(self) -> int:
-        return self.item_count
+        return len(self.items)
+
+    @property
+    def item_count(self) -> int:
+        """Количество уникальных предметов n."""
+        return self.n
 
     @property
     def group_count(self) -> int:
@@ -61,18 +65,18 @@ class Instance:
 
     @property
     def group_membership_count(self) -> int:
-        """Сумма размеров списков групп; может быть больше n при пересечениях."""
+        """Число предметов, состоящих в группах; не включает предметы вне групп."""
         return sum(group.item_count for group in self.groups)
 
     @property
-    def has_overlapping_groups(self) -> bool:
-        seen: set[int] = set()
-        for group in self.groups:
-            current = set(group.item_ids)
-            if seen.intersection(current):
-                return True
-            seen.update(current)
-        return False
+    def ungrouped_item_ids(self) -> tuple[int, ...]:
+        """ID предметов, не принадлежащих ни одной группе."""
+        grouped = {item_id for group in self.groups for item_id in group.item_ids}
+        return tuple(item.item_id for item in self.items if item.item_id not in grouped)
+
+    @property
+    def ungrouped_item_count(self) -> int:
+        return self.n - self.group_membership_count
 
     @property
     def items_by_id(self) -> Mapping[int, Item]:
@@ -84,13 +88,69 @@ class Instance:
         return self.capacity
 
 
-def load_instance(path: str | Path) -> Instance:
-    """Загрузить экземпляр v3 по каталогу экземпляра или пути к data.npz.
+def _validate_instance(instance: Instance) -> None:
+    """Проверить ограничения модели независимо от способа создания экземпляра."""
+    if not instance.items:
+        raise ValueError("Экземпляр должен содержать хотя бы один предмет.")
+    item_ids = [item.item_id for item in instance.items]
+    if any(item_id <= 0 for item_id in item_ids):
+        raise ValueError("ID предметов должны быть положительными.")
+    if len(set(item_ids)) != len(item_ids):
+        raise ValueError("ID предметов должны быть уникальными.")
+    if any(item.weight <= 0 or item.utility <= 0 for item in instance.items):
+        raise ValueError("Исходные веса и полезности предметов должны быть положительными.")
 
-    В отличие от прежнего формата, предметы хранятся один раз в общих массивах
-    item_ids/weights/utilities, а группы содержат только ссылки item_ids.
-    Старые версии v1/v2 намеренно не преобразуются автоматически: в них скидка
-    не имела пороговой семантики, поэтому такое преобразование меняло бы смысл.
+    if not 1 <= instance.target_item_count <= len(instance.items):
+        raise ValueError("target_item_count должен находиться в диапазоне 1..n.")
+    if not math.isfinite(float(instance.capacity)) or instance.capacity < 0:
+        raise ValueError("Вместимость должна быть конечным неотрицательным числом.")
+    if not instance.groups:
+        raise ValueError("В экземпляре должна быть хотя бы одна группа.")
+
+    known_item_ids = set(item_ids)
+    group_ids = [group.group_id for group in instance.groups]
+    if any(group_id <= 0 for group_id in group_ids):
+        raise ValueError("ID групп должны быть положительными.")
+    if len(set(group_ids)) != len(group_ids):
+        raise ValueError("ID групп должны быть уникальными.")
+
+    membership_owner: dict[int, int] = {}
+    for group in instance.groups:
+        if not group.item_ids:
+            raise ValueError(f"Группа {group.group_id} не должна быть пустой.")
+        if len(set(group.item_ids)) != group.item_count:
+            raise ValueError(f"В группе {group.group_id} повторяются ID предметов.")
+        unknown = set(group.item_ids) - known_item_ids
+        if unknown:
+            raise ValueError(
+                f"Группа {group.group_id} ссылается на неизвестные ID предметов: {sorted(unknown)}."
+            )
+        if not 1 <= group.min_selected_for_discount <= group.item_count:
+            raise ValueError(
+                f"Порог группы {group.group_id} должен находиться в диапазоне "
+                f"1..{group.item_count}."
+            )
+        if not 0 <= group.weight_discount_percent <= 50:
+            raise ValueError(f"Скидка группы {group.group_id} должна быть в диапазоне 0..50%.")
+        if not 0 <= group.utility_bonus_percent <= 50:
+            raise ValueError(f"Бонус группы {group.group_id} должен быть в диапазоне 0..50%.")
+        for item_id in group.item_ids:
+            previous_group = membership_owner.get(item_id)
+            if previous_group is not None:
+                raise ValueError(
+                    f"Предмет {item_id} одновременно входит в группы {previous_group} и "
+                    f"{group.group_id}; в текущей модели пересечения групп запрещены."
+                )
+            membership_owner[item_id] = group.group_id
+
+
+def load_instance(path: str | Path) -> Instance:
+    """Загрузить экземпляр формата v4 по каталогу или пути к data.npz.
+
+    Все предметы хранятся один раз в общих массивах item_ids/weights/utilities.
+    У каждой группы есть отдельный список ссылок на ID предметов. Списки групп
+    не пересекаются; предметы, не перечисленные ни в одном списке, не входят
+    ни в одну группу и не получают групповых эффектов.
     """
 
     path = Path(path)
@@ -105,28 +165,28 @@ def load_instance(path: str | Path) -> Instance:
     try:
         metadata = json.loads(meta_path.read_text(encoding="utf-8"))
         version = int(metadata.get("format_version", 1))
-        if version != 3:
+        if version != 4:
             raise ValueError(
-                f"Неподдерживаемая версия данных: {version}. Ожидался формат v3 "
-                "с уникальными ID предметов и порогами скидок. Старые данные "
-                "нужно пересоздать генератором v3."
+                f"Неподдерживаемая версия данных: {version}. Ожидался формат v4 "
+                "с пороговой активацией обоих эффектов и непересекающимися группами."
             )
 
+        items_meta = metadata["items"]
         with np.load(data_path, allow_pickle=False) as arrays:
-            required_keys = {
-                metadata["items"]["ids_key"],
-                metadata["items"]["weights_key"],
-                metadata["items"]["utilities_key"],
-            }
-            missing = required_keys.difference(arrays.files)
+            item_keys = (
+                items_meta["ids_key"],
+                items_meta["weights_key"],
+                items_meta["utilities_key"],
+            )
+            missing = set(item_keys).difference(arrays.files)
             if missing:
                 raise ValueError(f"В data.npz отсутствуют массивы: {', '.join(sorted(missing))}.")
 
-            item_ids = np.asarray(arrays[metadata["items"]["ids_key"]], dtype=np.int64)
-            weights = np.asarray(arrays[metadata["items"]["weights_key"]], dtype=np.int64)
-            utilities = np.asarray(arrays[metadata["items"]["utilities_key"]], dtype=np.int64)
+            item_ids = np.asarray(arrays[item_keys[0]], dtype=np.int64)
+            weights = np.asarray(arrays[item_keys[1]], dtype=np.int64)
+            utilities = np.asarray(arrays[item_keys[2]], dtype=np.int64)
             if not (item_ids.ndim == weights.ndim == utilities.ndim == 1):
-                raise ValueError("Массивы предметов должны быть одномерными.")
+                raise ValueError("Массивы ID, весов и полезностей должны быть одномерными.")
             if not (item_ids.size == weights.size == utilities.size):
                 raise ValueError("Массивы ID, весов и полезностей имеют разную длину.")
 
@@ -139,13 +199,13 @@ def load_instance(path: str | Path) -> Instance:
             for entry in metadata["groups"]:
                 key = entry["item_ids_key"]
                 if key not in arrays.files:
-                    raise ValueError(f"В data.npz отсутствует список предметов группы: {key}.")
+                    raise ValueError(f"В data.npz отсутствует список ID группы {entry['id']}: {key}.")
                 group_item_ids = np.asarray(arrays[key], dtype=np.int64)
                 if group_item_ids.ndim != 1:
-                    raise ValueError(f"Список предметов группы {entry['id']} должен быть одномерным.")
+                    raise ValueError(f"Список ID группы {entry['id']} должен быть одномерным.")
                 if int(entry["item_count"]) != int(group_item_ids.size):
                     raise ValueError(
-                        f"Размер списка группы {entry['id']} не совпадает с item_count в meta.json."
+                        f"Число предметов группы {entry['id']} не совпадает с item_count в meta.json."
                     )
                 groups_list.append(
                     Group(
@@ -153,22 +213,17 @@ def load_instance(path: str | Path) -> Instance:
                         item_ids=tuple(int(value) for value in group_item_ids),
                         min_selected_for_discount=int(entry["min_selected_for_discount"]),
                         weight_discount_percent=int(entry["weight_discount_percent"]),
-                        utility_bonus_percent=int(entry.get("utility_bonus_percent", 0)),
+                        utility_bonus_percent=int(entry["utility_bonus_percent"]),
                     )
                 )
             groups = tuple(groups_list)
 
+    except ValueError:
+        raise
     except (OSError, KeyError, TypeError, json.JSONDecodeError) as exc:
         raise ValueError(f"Не удалось загрузить экземпляр '{instance_dir}': {exc}") from exc
 
-    _validate_instance_parts(
-        instance_dir=instance_dir,
-        items=items,
-        groups=groups,
-        metadata=metadata,
-    )
-
-    return Instance(
+    instance = Instance(
         items=items,
         groups=groups,
         target_item_count=int(metadata["target_item_count"]),
@@ -177,55 +232,13 @@ def load_instance(path: str | Path) -> Instance:
         instance_id=metadata.get("instance_id"),
     )
 
-
-def _validate_instance_parts(
-    *, instance_dir: Path, items: tuple[Item, ...], groups: tuple[Group, ...], metadata: dict
-) -> None:
-    n = int(metadata["n"])
-    q = int(metadata["target_item_count"])
-    capacity = float(metadata["capacity"])
-
-    if n != len(items):
+    if int(metadata.get("n", -1)) != instance.n:
         raise ValueError(f"'{instance_dir}': n не совпадает с числом уникальных предметов.")
-    if len({item.item_id for item in items}) != len(items):
-        raise ValueError(f"'{instance_dir}': ID предметов должны быть уникальными.")
-    if any(item.item_id <= 0 for item in items):
-        raise ValueError(f"'{instance_dir}': ID предметов должны быть положительными.")
-    if not 1 <= q <= n:
-        raise ValueError(f"'{instance_dir}': Q должно находиться в диапазоне 1..n.")
-    if not np.isfinite(capacity) or capacity < 0:
-        raise ValueError(f"'{instance_dir}': вместимость должна быть конечной и неотрицательной.")
-    if not groups:
-        raise ValueError(f"'{instance_dir}': в экземпляре должна быть хотя бы одна группа.")
-    if len({group.group_id for group in groups}) != len(groups):
-        raise ValueError(f"'{instance_dir}': ID групп должны быть уникальными.")
-    if int(metadata.get("group_count", len(groups))) != len(groups):
-        raise ValueError(f"'{instance_dir}': group_count не совпадает с числом групп в meta.json.")
-    if any(group.group_id <= 0 for group in groups):
-        raise ValueError(f"'{instance_dir}': ID групп должны быть положительными.")
-    declared_memberships = metadata.get("group_membership_count")
-    if declared_memberships is not None and int(declared_memberships) != sum(group.item_count for group in groups):
+    if int(metadata.get("group_count", -1)) != instance.group_count:
+        raise ValueError(f"'{instance_dir}': group_count не совпадает с числом групп.")
+    if int(metadata.get("group_membership_count", -1)) != instance.group_membership_count:
         raise ValueError(f"'{instance_dir}': group_membership_count не совпадает с данными групп.")
-    if any(item.weight <= 0 or item.utility <= 0 for item in items):
-        raise ValueError(f"'{instance_dir}': веса и полезности должны быть положительными.")
+    if int(metadata.get("ungrouped_item_count", -1)) != instance.ungrouped_item_count:
+        raise ValueError(f"'{instance_dir}': ungrouped_item_count не совпадает с данными групп.")
 
-    known_ids = {item.item_id for item in items}
-    for group in groups:
-        if not group.item_ids:
-            raise ValueError(f"'{instance_dir}': группа {group.group_id} не содержит предметов.")
-        if len(set(group.item_ids)) != group.item_count:
-            raise ValueError(f"'{instance_dir}': в группе {group.group_id} повторяются ID предметов.")
-        unknown_ids = set(group.item_ids).difference(known_ids)
-        if unknown_ids:
-            raise ValueError(
-                f"'{instance_dir}': группа {group.group_id} ссылается на неизвестные ID: {sorted(unknown_ids)}."
-            )
-        if not 1 <= group.min_selected_for_discount <= group.item_count:
-            raise ValueError(
-                f"'{instance_dir}': порог группы {group.group_id} должен быть в диапазоне "
-                f"1..{group.item_count}."
-            )
-        if not 0 <= group.weight_discount_percent <= 50:
-            raise ValueError(f"'{instance_dir}': скидка группы {group.group_id} должна быть в диапазоне 0..50%." )
-        if not 0 <= group.utility_bonus_percent <= 50:
-            raise ValueError(f"'{instance_dir}': бонус группы {group.group_id} должен быть в диапазоне 0..50%." )
+    return instance
