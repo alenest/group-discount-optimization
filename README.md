@@ -180,5 +180,5 @@ python -m pytest
 - [`docs/mathematical_model.md`](docs/mathematical_model.md): постановка задачи и формулы;
 - [`docs/data_generation.md`](docs/data_generation.md): формат данных и генератор;
 - [`docs/algorithm_plan.md`](docs/algorithm_plan.md): описание алгоритмов;
-- [`docs/thesis.md`](docs/thesis.md): текст тезиса;
+- [`docs/thesis.md`](docs/thesis.md): текст тезиса, [`docs/thesis.docx`](docs/thesis.docx) и [`docs/thesis.pdf`](docs/thesis.pdf): готовые файлы;
 - [`reports/report.md`](reports/report.md): результаты экспериментов.
