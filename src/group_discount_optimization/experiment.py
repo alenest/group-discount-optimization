@@ -26,6 +26,7 @@ FIELDNAMES = [
     "utility",
     "weight",
     "capacity",
+    "group_count",
     "selected_count",
     "feasible",
     "active_groups",
@@ -82,6 +83,7 @@ def _row(
         "utility": f"{utility:.6f}",
         "weight": f"{weight:.6f}",
         "capacity": f"{instance.capacity:.6f}",
+        "group_count": instance.group_count,
         "selected_count": len(selected_ids),
         "feasible": str(feasible),
         "active_groups": active_groups,
@@ -185,7 +187,8 @@ def run_experiment(
     config = {
         "data_dir": Path(data_dir).as_posix(),
         "exhaustive_max_n": exhaustive_max_n,
-        "instances": len({row["n"] for row in rows}),
+        "instances": len({(row["n"], row["instance"]) for row in rows}),
+        "sizes": len({row["n"] for row in rows}),
         "rows": len(rows),
     }
     (output_path / "experiment_config.json").write_text(
