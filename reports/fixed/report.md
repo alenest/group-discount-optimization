@@ -1,4 +1,6 @@
-# Отчёт по экспериментам
+# Отчёт по экспериментам на исходном наборе
+
+> Это отчёт по исходному набору из 12 экземпляров, по одному на каждый `n`. Расширенный эксперимент с несколькими экземплярами на размер находится в [`../report.md`](../report.md).
 
 ## 1. Цель
 
@@ -164,8 +166,8 @@
 ## 8. Воспроизведение
 
 ```bash
-python -m group_discount_optimization.experiment --data data --output reports --exhaustive-max-n 25
-python -m group_discount_optimization.analysis --results reports/results.csv --output reports
+python -m group_discount_optimization.experiment --data data --output reports/fixed --exhaustive-max-n 25
+python -m group_discount_optimization.analysis --results reports/fixed/results.csv --output reports/fixed
 python -m pytest
 ```
 
@@ -173,8 +175,8 @@ python -m pytest
 
 ## 9. Файлы
 
-- `reports/results.csv` — полные результаты по экземплярам и методам;
-- `reports/summary.csv` — сводка по `n`;
-- `reports/experiment_config.json` — параметры запуска;
-- `reports/figures/` — графики;
-- `reports/report.md` — этот отчёт.
+- `reports/fixed/results.csv` — полные результаты по экземплярам и методам;
+- `reports/fixed/summary.csv` — сводка по `n`;
+- `reports/fixed/experiment_config.json` — параметры запуска;
+- `reports/fixed/figures/` — графики;
+- `reports/fixed/report.md` — этот отчёт.
