@@ -1,0 +1,80 @@
+{
+  "format_version": 4,
+  "instance_id": "instance_001",
+  "n": 35,
+  "target_item_count": 10,
+  "group_count": 3,
+  "group_membership_count": 32,
+  "ungrouped_item_count": 3,
+  "capacity": 184.68,
+  "seed": 2096,
+  "items": {
+    "ids_key": "item_ids",
+    "weights_key": "weights",
+    "utilities_key": "utilities"
+  },
+  "groups": [
+    {
+      "id": 1,
+      "item_count": 9,
+      "item_ids_key": "group_001_item_ids",
+      "min_selected_for_discount": 4,
+      "weight_discount_percent": 27,
+      "utility_bonus_percent": 4
+    },
+    {
+      "id": 2,
+      "item_count": 14,
+      "item_ids_key": "group_002_item_ids",
+      "min_selected_for_discount": 4,
+      "weight_discount_percent": 25,
+      "utility_bonus_percent": 29
+    },
+    {
+      "id": 3,
+      "item_count": 9,
+      "item_ids_key": "group_003_item_ids",
+      "min_selected_for_discount": 5,
+      "weight_discount_percent": 35,
+      "utility_bonus_percent": 10
+    }
+  ],
+  "generation": {
+    "weight_range": [
+      1,
+      100
+    ],
+    "utility_range": [
+      1,
+      100
+    ],
+    "discount_percent_range": [
+      25,
+      50
+    ],
+    "utility_bonus_percent_range": [
+      0,
+      50
+    ],
+    "threshold_range": [
+      4,
+      5
+    ],
+    "group_membership_overlap": false,
+    "ungrouped_items_included": true,
+    "capacity_rule": "25 percent of the interval above a low-weight feasible witness with a fixed group-count distribution and a heavier infeasible witness with the same distribution.",
+    "witness_selected_counts_by_group": [
+      4,
+      4,
+      0
+    ],
+    "witness_selected_ungrouped_count": 2
+  },
+  "notes": [
+    "n is the number of unique items; each item is stored exactly once.",
+    "Every item belongs to at most one group; items in no group receive no group effects.",
+    "Both the weight discount and utility bonus activate at the same group threshold.",
+    "When a threshold is reached, both effects apply to every selected item in that group.",
+    "Group size (item_count) and activation threshold are separate values."
+  ]
+}
