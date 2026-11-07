@@ -105,6 +105,14 @@ def _mark_script(run, kind: str) -> None:
     rpr.append(position)
 
 
+def _set_char_spacing(run, twips: int) -> None:
+    """Уменьшить межзнаковый интервал, чтобы строка ссылки переносилась целиком."""
+    rpr = run._element.get_or_add_rPr()
+    spacing = rpr.makeelement(qn("w:spacing"), {})
+    spacing.set(qn("w:val"), str(twips))
+    rpr.append(spacing)
+
+
 def _add_rich(paragraph, text: str, size: float) -> None:
     text = text.replace(" = ", "\u00a0=\u00a0").replace(" ≤ ", "\u00a0≤\u00a0")
     bold = italic = sub = sup = False
@@ -212,12 +220,18 @@ def build() -> Path:
         fmt.space_before = Pt(0)
         fmt.space_after = Pt(0)
         fmt.line_spacing = 1.0
+        runs = []
         run = paragraph.add_run(f"{number}. ")
         _set_run_font(run, 9)
+        runs.append(run)
         run = paragraph.add_run(authors_text)
         _set_run_font(run, 9, bold=True)
+        runs.append(run)
         run = paragraph.add_run(rest)
         _set_run_font(run, 9)
+        runs.append(run)
+        for run in runs:
+            _set_char_spacing(run, -2)
 
     document.save(OUT_DOCX)
     return OUT_DOCX
